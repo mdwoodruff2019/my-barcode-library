@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111827">
+<link rel="manifest" href="manifest.webmanifest">
+<title>My Barcode Library</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#172033;background:#f3f5f8}
+*{box-sizing:border-box}
+body{margin:0;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);min-height:100vh}
+header{background:#111827;color:white;padding:22px 18px 18px;position:sticky;top:0;z-index:2}
+.headrow{display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:22px;margin:0;font-weight:750;letter-spacing:-.4px}
+.sub{color:#cbd5e1;font-size:13px;margin-top:5px}
+main{max-width:680px;margin:0 auto;padding:16px}
+.search{width:100%;border:1px solid #d8dee8;border-radius:14px;padding:14px 15px;font-size:16px;background:white;margin-bottom:14px;outline:none}
+.search:focus,input:focus,textarea:focus{border-color:#64748b;box-shadow:0 0 0 3px #94a3b833}
+button{font:inherit;cursor:pointer;border:0}
+.primary{background:#2563eb;color:white;border-radius:13px;padding:13px 16px;font-weight:650}
+.secondary{background:#e8edf5;color:#1e293b;border-radius:12px;padding:11px 14px;font-weight:600}
+.danger{background:#fee2e2;color:#991b1b;border-radius:12px;padding:11px 14px;font-weight:600}
+.add{width:100%;font-size:16px;padding:15px;margin-bottom:16px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.item{background:white;border:1px solid #e2e7ef;border-radius:16px;padding:15px;text-align:left;min-height:95px;box-shadow:0 2px 8px #0f172a08}
+.item strong{display:block;font-size:15px;overflow-wrap:anywhere}
+.item small{display:block;color:#64748b;margin-top:6px}
+.empty{background:white;border:1px dashed #cbd5e1;border-radius:16px;padding:28px 18px;text-align:center;color:#64748b;line-height:1.5}
+.empty b{display:block;color:#263449;font-size:17px;margin-bottom:6px}
+.hidden{display:none!important}
+.modal{position:fixed;inset:0;background:#0f172acc;z-index:5;display:flex;align-items:flex-end;justify-content:center;padding:12px}
+.sheet{background:#f8fafc;border-radius:22px 22px 16px 16px;width:100%;max-width:620px;max-height:92vh;overflow:auto;padding:20px}
+.sheet h2{margin:0 0 16px;font-size:21px}
+label{display:block;font-size:13px;font-weight:650;color:#475569;margin:14px 0 6px}
+input[type=text],textarea{width:100%;padding:13px;border:1px solid #d8dee8;border-radius:12px;background:white;font:inherit;font-size:16px}
+textarea{min-height:65px;resize:vertical}
+.upload{border:1px dashed #94a3b8;border-radius:14px;background:white;padding:18px;text-align:center;color:#475569}
+.upload input{display:block;width:100%;margin-top:12px;font-size:14px}
+.preview{width:100%;max-height:230px;object-fit:contain;background:white;border:1px solid #e2e8f0;border-radius:12px;margin-top:12px}
+.actions{display:flex;gap:9px;margin-top:18px;flex-wrap:wrap}
+.actions button{flex:1;min-width:100px}
+.detailimage{width:100%;max-height:62vh;object-fit:contain;background:white;border-radius:14px;border:1px solid #e2e8f0}
+.detailname{font-size:23px;font-weight:750;margin:0 0 5px;overflow-wrap:anywhere}
+.muted{color:#64748b;font-size:13px}
+.topactions{display:flex;gap:8px}
+.topactions button{padding:9px 12px}
+footer{text-align:center;color:#94a3b8;font-size:11px;padding:18px 8px 28px}
+@media(min-width:560px){.modal{align-items:center}.sheet{border-radius:22px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+</style>
+</head>
+<body>
+<header>
+  <div class="headrow"><h1>My Barcode Library</h1><span aria-hidden="true">▦</span></div>
+  <div class="sub">Your products and barcode photos, saved on this device</div>
+</header>
+<main>
+  <input id="search" class="search" type="search" placeholder="Search products…" autocomplete="off" aria-label="Search products">
+  <button class="primary add" id="addBtn">＋ Add a product</button>
+  <section id="list" class="grid" aria-live="polite"></section>
+  <footer>Saved privately in this browser on this iPhone. Use the same browser to access your library.</footer>
+</main>
+
+<div class="modal hidden" id="editModal">
+ <div class="sheet">
+  <h2 id="editTitle">Add a product</h2>
+  <form id="productForm">
+   <label for="name">Product name</label>
+   <input id="name" type="text" maxlength="100" placeholder="e.g. Tide Laundry Detergent" required>
+   <label for="category">Category (optional)</label>
+   <input id="category" type="text" maxlength="50" placeholder="e.g. Household">
+   <label>Barcode picture</label>
+   <div class="upload">
+    <div>Choose a photo or take a picture of the barcode.</div>
+    <input id="photo" type="file" accept="image/*" capture="environment">
+    <img id="photoPreview" class="preview hidden" alt="Selected barcode preview">
+   </div>
+   <div class="actions">
+    <button class="secondary" type="button" id="cancelEdit">Cancel</button>
+    <button class="primary" type="submit" id="saveBtn">Save product</button>
+   </div>
+  </form>
+ </div>
+</div>
+
+<div class="modal hidden" id="detailModal">
+ <div class="sheet">
+  <div class="headrow" style="margin-bottom:15px">
+   <div><h2 class="detailname" id="detailName"></h2><div class="muted" id="detailCategory"></div></div>
+   <button class="secondary" id="closeDetail" aria-label="Close">✕</button>
+  </div>
+  <img id="detailImage" class="detailimage" alt="Barcode photo">
+  <div class="actions">
+   <button class="secondary" id="editProduct">Edit</button>
+   <button class="secondary" id="enlarge">Enlarge</button>
+   <button class="danger" id="deleteProduct">Delete</button>
+  </div>
+ </div>
+</div>
+
+<div class="modal hidden" id="imageModal">
+ <div class="sheet" style="text-align:center">
+  <div class="headrow" style="margin-bottom:12px"><strong id="largeName">Barcode</strong><button class="secondary" id="closeImage">Close</button></div>
+  <img id="largeImage" class="detailimage" alt="Enlarged barcode photo" style="max-height:78vh">
+ </div>
+</div>
+
+<script>
+(() => {
+ const DB_NAME='my-barcode-library', STORE='products', DB_VERSION=1;
+ let db, editingId=null, selectedPhoto=null, currentProduct=null, pendingImageUrl=null;
+ const $=id=>document.getElementById(id);
+ const openDB=()=>new Promise((resolve,reject)=>{
+  const req=indexedDB.open(DB_NAME,DB_VERSION);
+  req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'id'});};
+  req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);
+ });
+ const all=()=>new Promise((resolve,reject)=>{const r=db.transaction(STORE).objectStore(STORE).getAll();r.onsuccess=()=>resolve(r.result||[]);r.onerror=()=>reject(r.error);});
+ const put=p=>new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(p);t.oncomplete=resolve;t.onerror=()=>reject(t.error);});
+ const remove=id=>new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).delete(id);t.oncomplete=resolve;t.onerror=()=>reject(t.error);});
+ const makeId=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
+ const show=(id)=>$(id).classList.remove('hidden');
+ const hide=(id)=>$(id).classList.add('hidden');
+ function clearPreview(){if(pendingImageUrl)URL.revokeObjectURL(pendingImageUrl);pendingImageUrl=null;$('photoPreview').src='';$('photoPreview').classList.add('hidden');}
+ async function render(){
+  const products=await all(), q=$('search').value.trim().toLowerCase();
+  const filtered=products.filter(p=>(p.name+' '+(p.category||'')).toLowerCase().includes(q)).sort((a,b)=>a.name.localeCompare(b.name));
+  const list=$('list');list.replaceChildren();
+  if(!filtered.length){
+   const empty=document.createElement('div');empty.className='empty';empty.style.gridColumn='1/-1';
+   const b=document.createElement('b');b.textContent=products.length?'No matching products':'Your library is empty';
+   const s=document.createElement('span');s.textContent=products.length?'Try another search.':'Tap “Add a product” to save your first barcode photo.';
+   empty.append(b,s);list.append(empty);return;
+  }
+  for(const p of filtered){
+   const btn=document.createElement('button');btn.className='item';btn.type='button';
+   const name=document.createElement('strong');name.textContent=p.name;
+   const cat=document.createElement('small');cat.textContent=p.category||'Barcode saved';
+   btn.append(name,cat);btn.addEventListener('click',()=>openDetail(p.id));list.append(btn);
+  }
+ }
+ function openEditor(p=null){
+  editingId=p?p.id:null;selectedPhoto=null;clearPreview();
+  $('editTitle').textContent=p?'Edit product':'Add a product';
+  $('name').value=p?p.name:'';$('category').value=p?(p.category||''):'';
+  $('photo').value='';
+  if(p&&p.photo){pendingImageUrl=URL.createObjectURL(p.photo);$('photoPreview').src=pendingImageUrl;$('photoPreview').classList.remove('hidden');}
+  show('editModal');setTimeout(()=>$('name').focus(),100);
+ }
+ async function openDetail(id){
+  const p=(await all()).find(x=>x.id===id);if(!p)return;
+  currentProduct=p;$('detailName').textContent=p.name;$('detailCategory').textContent=p.category||'';
+  $('detailImage').src=URL.createObjectURL(p.photo);show('detailModal');
+ }
+ $('photo').addEventListener('change',e=>{
+  const file=e.target.files&&e.target.files[0];if(!file)return;
+  if(!file.type.startsWith('image/')){alert('Please choose an image file.');return;}
+  selectedPhoto=file;clearPreview();pendingImageUrl=URL.createObjectURL(file);
+  $('photoPreview').src=pendingImageUrl;$('photoPreview').classList.remove('hidden');
+ });
+ $('addBtn').addEventListener('click',()=>openEditor());
+ $('cancelEdit').addEventListener('click',()=>{hide('editModal');clearPreview();});
+ $('productForm').addEventListener('submit',async e=>{
+  e.preventDefault();const name=$('name').value.trim();if(!name)return;
+  const old=editingId?(await all()).find(p=>p.id===editingId):null;
+  const photo=selectedPhoto||(old&&old.photo);
+  if(!photo){alert('Please upload a barcode picture.');return;}
+  const product={id:editingId||makeId(),name,category:$('category').value.trim(),photo,updatedAt:Date.now()};
+  try{await put(product);hide('editModal');clearPreview();await render();}
+  catch(err){alert('Could not save this product. Your browser may be out of storage space.');}
+ });
+ $('closeDetail').addEventListener('click',()=>{hide('detailModal');$('detailImage').src='';});
+ $('editProduct').addEventListener('click',()=>{const p=currentProduct;hide('detailModal');$('detailImage').src='';openEditor(p);});
+ $('deleteProduct').addEventListener('click',async()=>{
+  if(!currentProduct||!confirm('Delete '+currentProduct.name+' and its barcode photo?'))return;
+  await remove(currentProduct.id);hide('detailModal');$('detailImage').src='';currentProduct=null;await render();
+ });
+ $('enlarge').addEventListener('click',()=>{if(!currentProduct)return;$('largeName').textContent=currentProduct.name;$('largeImage').src=$('detailImage').src;show('imageModal');});
+ $('closeImage').addEventListener('click',()=>{hide('imageModal');$('largeImage').src='';});
+ $('search').addEventListener('input',render);
+ $('imageModal').addEventListener('click',e=>{if(e.target===$('imageModal')){$('closeImage').click();}});
+ $('editModal').addEventListener('click',e=>{if(e.target===$('editModal'))$('cancelEdit').click();});
+ $('detailModal').addEventListener('click',e=>{if(e.target===$('detailModal'))$('closeDetail').click();});
+ openDB().then(d=>{db=d;render();}).catch(()=>{$('list').textContent='This browser could not open local storage. Try opening this app in Safari.';});
+})();
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+</script>
+</body>
+</html>

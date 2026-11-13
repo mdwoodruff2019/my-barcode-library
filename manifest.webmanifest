@@ -1,0 +1,9 @@
+{
+  "name": "My Barcode Library",
+  "short_name": "Barcodes",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f3f5f8",
+  "theme_color": "#111827",
+  "description": "A private, on-device library of product barcode photos."
+}
