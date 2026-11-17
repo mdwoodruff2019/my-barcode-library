@@ -56,6 +56,7 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:18px 8px 28px}
 </header>
 <main>
   <input id="search" class="search" type="search" placeholder="Search products…" autocomplete="off" aria-label="Search products">
+  <button class="secondary" id="backupBtn" type="button" style="width:100%;margin-bottom:10px">↓ Back up my library</button>
   <button class="primary add" id="addBtn">＋ Add a product</button>
   <section id="list" class="grid" aria-live="polite"></section>
   <footer>Saved privately in this browser on this iPhone. Use the same browser to access your library.</footer>
@@ -119,6 +120,35 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:18px 8px 28px}
  const put=p=>new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).put(p);t.oncomplete=resolve;t.onerror=()=>reject(t.error);});
  const remove=id=>new Promise((resolve,reject)=>{const t=db.transaction(STORE,'readwrite');t.objectStore(STORE).delete(id);t.oncomplete=resolve;t.onerror=()=>reject(t.error);});
  const makeId=()=>crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
+ async function createBackup(){
+  const products=await all();
+  if(!products.length){alert('There are no products to back up yet.');return;}
+  const backupProducts=[];
+  for(const p of products){
+   const copy={...p};
+   if(p.photo){
+    const bytes=new Uint8Array(await p.photo.arrayBuffer());
+    let binary='';
+    const chunkSize=0x8000;
+    for(let i=0;i<bytes.length;i+=chunkSize){
+     binary+=String.fromCharCode(...bytes.subarray(i,Math.min(i+chunkSize,bytes.length)));
+    }
+    copy.photoBase64=btoa(binary);
+    copy.photoType=p.photo.type||'application/octet-stream';
+    delete copy.photo;
+   }
+   backupProducts.push(copy);
+  }
+  const backup={format:'my-barcode-library-backup',version:1,createdAt:new Date().toISOString(),productCount:backupProducts.length,products:backupProducts};
+  const blob=new Blob([JSON.stringify(backup)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const link=document.createElement('a');
+  link.href=url;
+  link.download='my-barcode-library-backup-'+new Date().toISOString().slice(0,10)+'.json';
+  document.body.appendChild(link);link.click();link.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+  alert('Backup created with '+backupProducts.length+' products. Save the downloaded JSON file somewhere safe. Your library has not been changed.');
+ }
  const show=(id)=>$(id).classList.remove('hidden');
  const hide=(id)=>$(id).classList.add('hidden');
  function clearPreview(){if(pendingImageUrl)URL.revokeObjectURL(pendingImageUrl);pendingImageUrl=null;$('photoPreview').src='';$('photoPreview').classList.add('hidden');}
@@ -157,6 +187,12 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:18px 8px 28px}
   if(!file.type.startsWith('image/')){alert('Please choose an image file.');return;}
   selectedPhoto=file;clearPreview();pendingImageUrl=URL.createObjectURL(file);
   $('photoPreview').src=pendingImageUrl;$('photoPreview').classList.remove('hidden');
+ });
+ $('backupBtn').addEventListener('click',async()=>{
+  const button=$('backupBtn');button.disabled=true;button.textContent='Creating backup…';
+  try{await createBackup();}
+  catch(err){console.error(err);alert('Could not create the backup. Your saved products have not been changed. Please try again.');}
+  finally{button.disabled=false;button.textContent='↓ Back up my library';}
  });
  $('addBtn').addEventListener('click',()=>openEditor());
  $('cancelEdit').addEventListener('click',()=>{hide('editModal');clearPreview();});
