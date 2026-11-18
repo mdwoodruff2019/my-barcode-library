@@ -124,7 +124,7 @@ label{display:block;font-size:13px;font-weight:650;color:#475569;margin:13px 0 6
 (() => {
  const L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
  const R=['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
- function validUPC(v){if(!/^\\d{12}$/.test(v))return false;let sum=0;for(let i=0;i<11;i++)sum+=Number(v[i])*(i%2===0?3:1);return (10-sum%10)%10===Number(v[11]);}
+ function validUPC(v){if(!/^\d{12}$/.test(v))return false;let sum=0;for(let i=0;i<11;i++)sum+=Number(v[i])*(i%2===0?3:1);return (10-sum%10)%10===Number(v[11]);}
  function barcodeSVG(v){
   if(!validUPC(v))return null;
   const bits='101'+[...v.slice(0,6)].map(x=>L[+x]).join('')+'01010'+[...v.slice(6)].map(x=>R[+x]).join('')+'101';
