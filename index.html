@@ -24,7 +24,7 @@ label{display:block;font-size:13px;font-weight:650;color:#475569;margin:13px 0 6
 .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.detailimage{width:100%;max-height:55vh;object-fit:contain;background:white;border:1px solid #e2e8f0;border-radius:12px}
 .muted{color:#64748b;font-size:13px}.sectiontitle{font-size:18px;margin:20px 0 10px}.orderrow{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:10px;align-items:center;background:white;padding:10px;border-radius:11px;margin:7px 0}.orderrow small{display:block;color:#64748b}.orderrow input{padding:8px;text-align:center}.ordercard{background:white;border:1px solid #e2e7ef;border-radius:13px;padding:13px;margin:8px 0}.ordercard .actions{margin-top:10px}
 .status{padding:10px;border-radius:10px;background:#e0f2fe;color:#075985;font-size:13px;margin:10px 0}.reviewrow{display:grid;grid-template-columns:1fr 1fr 70px;gap:7px;align-items:center;margin:8px 0;background:white;padding:9px;border-radius:10px}.reviewrow input{padding:9px;font-size:14px}.reviewrow select{padding:9px;font-size:14px}
-footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
+.menu-panel{background:white;border:1px solid #d8dee8;border-radius:14px;padding:12px;margin:10px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.menu-panel>strong,.menu-panel>p,.menu-panel>#buttonChoices{grid-column:1/-1}.menu-panel button{text-align:left}.menu-panel label{display:flex;align-items:center;gap:10px;margin:4px 0;padding:7px;font-size:15px}.menu-panel input[type=checkbox]{width:20px;height:20px}.toolbar:empty{display:none}footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
 @media(min-width:560px){.modal{align-items:center}.sheet{border-radius:20px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
@@ -32,14 +32,30 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
 <header><div class="headrow"><h1>My Barcode Library</h1><span aria-hidden="true">▦</span></div><div class="sub">Your products and barcode photos, saved on this device</div></header>
 <main>
  <input id="search" class="search" type="search" placeholder="Search product name, item number or category…" autocomplete="off">
- <div class="toolbar">
-  <button class="secondary" id="backupBtn">↓ Back up library</button>
-  <button class="secondary" id="restoreBtn">↑ Restore backup</button><input id="restoreFile" type="file" accept=".json,application/json" class="hidden">
-  <button class="primary" id="addBtn">＋ Add product</button>
-  <button class="secondary" id="orderBtn">▤ Build an order</button>
-  <button class="secondary" id="invoiceBtn">▧ Scan invoice</button>
+ <div class="headrow" style="margin-bottom:10px"><button class="secondary" id="menuToggle" aria-expanded="false" aria-controls="appMenu">☰ Menu</button><button class="secondary" id="customizeBtn" style="display:none">Customize Buttons</button></div>
+ <div id="appMenu" class="menu-panel hidden" aria-label="App menu">
+  <button class="secondary" data-nav="all">All Products</button>
+  <button class="secondary" data-nav="builder">Order Builder</button>
+  <button class="secondary" data-nav="saved">Saved Orders</button>
+  <button class="secondary" data-nav="add">Add Product</button>
+  <button class="secondary" data-nav="invoice">Scan Invoice</button>
+  <button class="secondary" data-nav="rearrange">Rearrange Products</button>
+  <button class="secondary" data-nav="backup">Back Up Library</button>
+  <button class="secondary" data-nav="restore">Restore Library</button>
+  <button class="secondary" id="customizeMenu">⚙ Customize Buttons</button>
  </div>
- <div class="actions" style="margin:0 0 12px"><button class="secondary" id="rearrangeBtn">Rearrange Products</button><button class="primary hidden" id="doneRearrange">Done</button></div>
+ <div id="customizePanel" class="menu-panel hidden"><strong>Show these buttons on the main screen</strong><p class="muted">All actions remain available in the menu.</p><div id="buttonChoices"></div><button class="primary" id="customizeDone">Done</button></div>
+ <div class="toolbar" id="mainButtons">
+  <button class="secondary" id="backupBtn" data-main="backup">↓ Back up library</button>
+  <button class="secondary" id="restoreBtn" data-main="restore">↑ Restore backup</button><input id="restoreFile" type="file" accept=".json,application/json" class="hidden">
+  <button class="primary" id="addBtn" data-main="add">＋ Add product</button>
+  <button class="secondary" id="orderBtn" data-main="builder">▤ Order Builder</button>
+  <button class="secondary" id="savedBtn" data-main="saved">▤ Saved Orders</button>
+  <button class="secondary" id="invoiceBtn" data-main="invoice">▧ Scan invoice</button>
+  <button class="secondary" id="allBtn" data-main="all">All Products</button>
+  <button class="secondary" id="rearrangeBtn" data-main="rearrange">Rearrange Products</button>
+ </div>
+ <div class="actions" style="margin:0 0 12px"><button class="primary hidden" id="doneRearrange">Done Rearranging</button></div>
  <nav id="categories" class="categorybar" aria-label="Product categories"></nav>
  <section id="list" class="grid" aria-live="polite"></section>
  <footer>Saved privately in this browser on this device. Use the same browser to access your library.</footer>
@@ -68,9 +84,11 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
  <input id="orderSearch" type="search" placeholder="Find a product…" style="margin:8px 0">
  <div id="orderProducts"></div>
  <div class="actions"><button class="secondary" id="clearQuantities">Clear quantities</button><button class="primary" id="saveOrder">Save order</button></div>
- <h3 class="sectiontitle">Saved orders</h3><div id="savedOrders"></div>
+
  <div id="activeOrder" class="hidden"><h3 class="sectiontitle">Order details</h3><div id="activeOrderItems"></div><div class="actions"><button class="secondary" id="editOrderItems">Edit order items</button><button class="secondary" id="printOrder">Print / Share</button><button class="secondary" id="finishOrder">Close order</button></div></div>
 </div></div>
+
+<div class="modal hidden" id="savedModal"><div class="sheet"><div class="headrow"><h2>Saved Orders</h2><button class="secondary" data-close="savedModal">Close</button></div><div id="savedOrders"></div></div></div>
 
 <div class="modal hidden" id="invoiceModal"><div class="sheet">
  <div class="headrow"><h2>Scan a paper invoice</h2><button class="secondary" data-close="invoiceModal">Close</button></div>
@@ -122,7 +140,7 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
   renderCategories(products);
   const filtered=products.filter(p=>(!selectedCategory||(p.category||'').trim()===selectedCategory)&&[p.name,p.itemNumber,p.category].join(' ').toLowerCase().includes(q));
   const list=$('list');list.replaceChildren();list.classList.toggle('rearranging',rearrangeMode);
-  $('rearrangeBtn').classList.toggle('hidden',rearrangeMode);$('doneRearrange').classList.toggle('hidden',!rearrangeMode);
+  $('doneRearrange').classList.toggle('hidden',!rearrangeMode);
   if(!filtered.length){const d=document.createElement('div');d.className='empty';d.textContent=products.length?'No matching products.':'Your library is empty. Tap “Add product” to get started.';list.append(d);return;}
   filtered.forEach(p=>{
    const card=document.createElement('div');card.className='item';card.dataset.id=p.id;
@@ -134,30 +152,48 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
    else{
     const tools=document.createElement('div');tools.className='itemtools';
     const handle=document.createElement('button');handle.type='button';handle.className='draghandle';handle.textContent='⠿';handle.title='Press and hold to move product';handle.setAttribute('aria-label','Drag to rearrange '+p.name);
-    let startX=0,startY=0,active=false,targetId=null;
-    handle.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse')return;startX=e.clientX;startY=e.clientY;active=false;targetId=null;});
-    let holdTimer=null;
+    // Touch uses a single pointer gesture. Native HTML dragging is reserved for a mouse.
+    let startX=0,startY=0,active=false,targetId=null,holdTimer=null,pointerId=null;
+    const clearHighlight=()=>{card.classList.remove('dragging');document.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover'));};
     handle.addEventListener('pointerdown',e=>{
       if(e.pointerType==='mouse')return;
-      holdTimer=setTimeout(()=>{active=true;card.classList.add('dragging');handle.setPointerCapture(e.pointerId);},230);
+      clearTimeout(holdTimer);startX=e.clientX;startY=e.clientY;
+      active=false;targetId=null;pointerId=e.pointerId;
+      // Capture at the start, so releasing outside the handle always resets the gesture.
+      try{handle.setPointerCapture(e.pointerId);}catch(_){}
+      holdTimer=setTimeout(()=>{if(pointerId===e.pointerId){active=true;card.classList.add('dragging');}},280);
     });
     handle.addEventListener('pointermove',e=>{
-      if(e.pointerType==='mouse')return;
-      if(!active){if(Math.hypot(e.clientX-startX,e.clientY-startY)>9){clearTimeout(holdTimer);holdTimer=null;}return;}
-      e.preventDefault();const el=document.elementFromPoint(e.clientX,e.clientY)?.closest('.item');
+      if(e.pointerType==='mouse'||pointerId!==e.pointerId)return;
+      if(!active){if(Math.hypot(e.clientX-startX,e.clientY-startY)>10){clearTimeout(holdTimer);holdTimer=null;}return;}
+      e.preventDefault();
+      const el=document.elementFromPoint(e.clientX,e.clientY)?.closest('.item');
       document.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover'));
-      targetId=el&&el.dataset.id!==p.id?el.dataset.id:null;
+      targetId=el&&el.dataset.id!==String(p.id)?el.dataset.id:null;
       if(targetId)el.classList.add('dragover');
-      const margin=65;if(e.clientY<margin)window.scrollBy(0,-12);else if(e.clientY>innerHeight-margin)window.scrollBy(0,12);
+      if(e.clientY<65)window.scrollBy(0,-12);
+      else if(e.clientY>window.innerHeight-65)window.scrollBy(0,12);
     });
-    const finish=async e=>{clearTimeout(holdTimer);holdTimer=null;const to=targetId,wasActive=active;active=false;targetId=null;card.classList.remove('dragging');document.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover'));if(wasActive&&to)await reorder(p.id,to);};
-    handle.addEventListener('pointerup',finish);handle.addEventListener('pointercancel',finish);
+    const finish=async e=>{
+      if(e.pointerType==='mouse'||pointerId!==e.pointerId)return;
+      clearTimeout(holdTimer);holdTimer=null;
+      const to=targetId,wasActive=active;
+      active=false;targetId=null;pointerId=null;
+      clearHighlight();
+      try{if(handle.hasPointerCapture(e.pointerId))handle.releasePointerCapture(e.pointerId);}catch(_){}
+      if(e.type==='pointerup'&&wasActive&&to)await reorder(p.id,to);
+    };
+    handle.addEventListener('pointerup',finish);
+    handle.addEventListener('pointercancel',finish);
+    handle.addEventListener('lostpointercapture',()=>{clearTimeout(holdTimer);holdTimer=null;active=false;targetId=null;pointerId=null;clearHighlight();});
     handle.draggable=true;
-    handle.addEventListener('dragstart',e=>{dragId=p.id;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
-    handle.addEventListener('dragend',()=>{dragId=null;card.classList.remove('dragging');document.querySelectorAll('.dragover').forEach(x=>x.classList.remove('dragover'));});
+    handle.addEventListener('dragstart',e=>{
+      if(e.dataTransfer){dragId=p.id;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+    });
+    handle.addEventListener('dragend',()=>{dragId=null;clearHighlight();});
     card.addEventListener('dragover',e=>{e.preventDefault();card.classList.add('dragover');});
     card.addEventListener('dragleave',()=>card.classList.remove('dragover'));
-    card.addEventListener('drop',e=>{e.preventDefault();card.classList.remove('dragover');if(dragId&&dragId!==p.id)reorder(dragId,p.id);});
+    card.addEventListener('drop',e=>{e.preventDefault();card.classList.remove('dragover');const from=dragId;dragId=null;if(from&&from!==p.id)reorder(from,p.id);});
     tools.append(handle);card.append(tools);
    }
    list.append(card);
@@ -165,11 +201,23 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
  }
  $('rearrangeBtn').onclick=()=>{rearrangeMode=true;selectedCategory='';$('search').value='';render();};
  $('doneRearrange').onclick=()=>{rearrangeMode=false;render();};
- async function reorder(from,to){const ps=sortedProducts(await all()),a=ps.findIndex(p=>p.id===from),b=ps.findIndex(p=>p.id===to);if(a<0||b<0)return;const [m]=ps.splice(a,1);ps.splice(b,0,m);ps.forEach((p,i)=>p.sortOrder=i);const t=db.transaction(STORE,'readwrite');ps.forEach(p=>t.objectStore(STORE).put(p));await new Promise((r,j)=>{t.oncomplete=r;t.onerror=()=>j(t.error);});render();}
+ async function reorder(from,to){const ps=sortedProducts(await all()),a=ps.findIndex(p=>p.id===from),b=ps.findIndex(p=>String(p.id)===String(to));if(a<0||b<0)return;const [m]=ps.splice(a,1);ps.splice(b,0,m);ps.forEach((p,i)=>p.sortOrder=i);const t=db.transaction(STORE,'readwrite');ps.forEach(p=>t.objectStore(STORE).put(p));await new Promise((r,j)=>{t.oncomplete=r;t.onerror=()=>j(t.error);});render();}
  async function moveProduct(id,delta){const ps=sortedProducts(await all()),i=ps.findIndex(p=>p.id===id),j=Math.max(0,Math.min(ps.length-1,i+delta));if(i<0||i===j)return;[ps[i],ps[j]]=[ps[j],ps[i]];ps.forEach((p,k)=>p.sortOrder=k);const t=db.transaction(STORE,'readwrite');ps.forEach(p=>t.objectStore(STORE).put(p));await new Promise((r,j)=>{t.oncomplete=r;t.onerror=()=>j(t.error);});render();}
  function openEditor(p=null){editingId=p?.id||null;selectedPhoto=null;clearPreview();$('editTitle').textContent=p?'Edit product':'Add a product';$('name').value=p?.name||'';$('itemNumber').value=p?.itemNumber||'';$('category').value=p?.category||'';$('photo').value='';if(p?.photo){pendingImageUrl=URL.createObjectURL(p.photo);$('photoPreview').src=pendingImageUrl;show('photoPreview');}show('editModal');}
  async function openDetail(id,fromOrder=false){detailFromOrder=fromOrder;const p=(await all()).find(x=>x.id===id);if(!p)return;currentProduct=p;$('detailName').textContent=p.name;$('detailMeta').textContent=[p.category,p.itemNumber?'Item #: '+p.itemNumber:''].filter(Boolean).join(' • ')||'No category';$('detailImage').src=p.photo?URL.createObjectURL(p.photo):'';show('detailModal');}
  $('photo').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(!f.type.startsWith('image/')){alert('Please choose an image file.');return;}selectedPhoto=f;clearPreview();pendingImageUrl=URL.createObjectURL(f);$('photoPreview').src=pendingImageUrl;show('photoPreview');});
+ const actionLabels={add:'Add Product',all:'All Products',builder:'Order Builder',saved:'Saved Orders',invoice:'Scan Invoice',rearrange:'Rearrange Products',backup:'Back Up Library',restore:'Restore Library'};
+ const defaultVisible=['add','all'];
+ function getVisible(){try{const x=JSON.parse(localStorage.getItem('barcode-visible-buttons'));return Array.isArray(x)?x.filter(k=>actionLabels[k]):defaultVisible;}catch{return defaultVisible;}}
+ function applyVisible(){const visible=getVisible();document.querySelectorAll('[data-main]').forEach(b=>b.classList.toggle('hidden',!visible.includes(b.dataset.main)));}
+ function closeMenu(){hide('appMenu');$('menuToggle').setAttribute('aria-expanded','false');}
+ $('menuToggle').onclick=()=>{const open=$('appMenu').classList.toggle('hidden')===false;$('menuToggle').setAttribute('aria-expanded',String(open));};
+ function renderChoices(){const box=$('buttonChoices');box.replaceChildren();const selected=getVisible();Object.entries(actionLabels).forEach(([key,label])=>{const row=document.createElement('label');const cb=document.createElement('input');cb.type='checkbox';cb.checked=selected.includes(key);cb.onchange=()=>{const next=getVisible();const values=cb.checked?[...next,key]:next.filter(x=>x!==key);try{localStorage.setItem('barcode-visible-buttons',JSON.stringify(values));}catch(e){alert('Unable to save display preferences.');}applyVisible();};row.append(cb,document.createTextNode(label));box.append(row);});}
+ $('customizeMenu').onclick=()=>{closeMenu();renderChoices();show('customizePanel');};
+ $('customizeDone').onclick=()=>hide('customizePanel');
+ const navTargets={all:'allBtn',builder:'orderBtn',saved:'savedBtn',add:'addBtn',invoice:'invoiceBtn',rearrange:'rearrangeBtn',backup:'backupBtn',restore:'restoreBtn'};
+ document.querySelectorAll('[data-nav]').forEach(btn=>btn.onclick=()=>{closeMenu();$(navTargets[btn.dataset.nav]).click();});
+ applyVisible();
  $('backupBtn').onclick=async()=>{const b=$('backupBtn');b.disabled=true;try{await createBackup();}catch(e){alert('Backup failed. Your saved products have not been changed.');}finally{b.disabled=false;}};
  $('addBtn').onclick=()=>openEditor();$('cancelEdit').onclick=()=>{hide('editModal');clearPreview();};
  $('productForm').onsubmit=async e=>{e.preventDefault();const name=$('name').value.trim();if(!name)return;const old=editingId?(await all()).find(p=>p.id===editingId):null,photo=selectedPhoto||(old&&old.photo);if(!photo){alert('Please choose a barcode picture.');return;}const ps=sortedProducts(await all());const product={...old,id:editingId||makeId(),name,itemNumber:$('itemNumber').value.trim(),category:$('category').value.trim(),photo,sortOrder:old?.sortOrder??(ps.length?Math.max(...ps.map(p=>Number.isFinite(p.sortOrder)?p.sortOrder:0))+1:0),addedAt:old?.addedAt||Date.now(),updatedAt:Date.now()};try{await put(product);hide('editModal');clearPreview();await render();}catch(err){alert('Could not save this product.');}};
@@ -183,8 +231,8 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
  // Order builder: orders are stored separately from products.
  let quantities={};
  function renderOrderProducts(){const q=$('orderSearch').value.toLowerCase(),box=$('orderProducts');box.replaceChildren();sortedProducts(window.cachedProducts||[]).filter(p=>[p.name,p.itemNumber,p.category].join(' ').toLowerCase().includes(q)).forEach(p=>{const row=document.createElement('div');row.className='orderrow';const label=document.createElement('div');label.textContent=p.name;const small=document.createElement('small');small.textContent=p.itemNumber?'Item #: '+p.itemNumber:(p.category||'');label.append(small);const input=document.createElement('input');input.type='number';input.min='0';input.step='1';input.value=quantities[p.id]||'';input.placeholder='Qty';input.setAttribute('aria-label','Quantity for '+p.name);input.oninput=()=>{quantities[p.id]=Math.max(0,parseInt(input.value||'0',10)||0);};row.append(label,input);box.append(row);});}
- async function openOrder(){window.cachedProducts=await all();quantities={};editingOrderId=null;$('saveOrder').textContent='Save order';$('orderSearch').value='';renderOrderProducts();await renderSavedOrders();hide('activeOrder');show('orderModal');}
- $('orderBtn').onclick=openOrder;$('orderSearch').oninput=renderOrderProducts;$('clearQuantities').onclick=()=>{quantities={};renderOrderProducts();};
+ async function openOrder(){window.cachedProducts=await all();quantities={};editingOrderId=null;$('saveOrder').textContent='Save order';$('orderSearch').value='';renderOrderProducts();hide('activeOrder');show('orderModal');}
+ $('orderBtn').onclick=openOrder;$('savedBtn').onclick=async()=>{await renderSavedOrders();show('savedModal');};$('allBtn').onclick=()=>{selectedCategory='';rearrangeMode=false;$('search').value='';render();window.scrollTo({top:0,behavior:'smooth'});};$('orderSearch').oninput=renderOrderProducts;$('clearQuantities').onclick=()=>{quantities={};renderOrderProducts();};
  async function renderSavedOrders(){const box=$('savedOrders');box.replaceChildren();const os=(await allOrders()).sort((a,b)=>b.updatedAt-a.updatedAt);if(!os.length){box.textContent='No saved orders yet.';return;}os.forEach(o=>{const card=document.createElement('div');card.className='ordercard';const title=document.createElement('strong');title.textContent=o.name;const meta=document.createElement('div');meta.className='muted';meta.textContent=o.items.length+' line items • '+new Date(o.updatedAt).toLocaleString();const actions=document.createElement('div');actions.className='actions';const open=document.createElement('button');open.className='secondary';open.textContent='Open / edit';open.onclick=()=>showOrder(o.id);const del=document.createElement('button');del.className='danger';del.textContent='Delete';del.onclick=async()=>{if(confirm('Delete saved order “'+o.name+'”?')){const t=db.transaction(ORDER_STORE,'readwrite');t.objectStore(ORDER_STORE).delete(o.id);await new Promise(r=>t.oncomplete=r);renderSavedOrders();}};actions.append(open,del);card.append(title,meta,actions);box.append(card);});}
  $('saveOrder').onclick=async()=>{const previous=editingOrderId?(await allOrders()).find(x=>x.id===editingOrderId):null;const items=Object.entries(quantities).filter(([,q])=>q>0).map(([id,qty])=>({productId:id,quantity:qty,picked:!!previous?.items.find(x=>x.productId===id)?.picked}));if(!items.length){alert('Enter at least one quantity first.');return;}const name=prompt('Name this order:',previous?.name||'Order '+new Date().toLocaleDateString());if(!name)return;const o={id:previous?.id||makeId(),name,items,createdAt:previous?.createdAt||Date.now(),updatedAt:Date.now()};await putOrder(o);editingOrderId=null;$('saveOrder').textContent='Save order';await renderSavedOrders();await showOrder(o.id);};
  $('editOrderItems').onclick=async()=>{const o=(await allOrders()).find(x=>x.id===activeOrderId);if(!o)return;editingOrderId=o.id;window.cachedProducts=await all();quantities={};o.items.forEach(it=>quantities[it.productId]=it.quantity);$('orderSearch').value='';$('saveOrder').textContent='Update '+o.name;renderOrderProducts();hide('activeOrder');$('orderSearch').focus();};
@@ -212,9 +260,9 @@ footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
    }
    box.append(card);
   });
-  show('activeOrder');$('activeOrder').scrollIntoView({block:'nearest'});
+  hide('savedModal');show('orderModal');show('activeOrder');$('activeOrder').scrollIntoView({block:'nearest'});
  }
- $('finishOrder').onclick=()=>{hide('activeOrder');renderSavedOrders();};$('printOrder').onclick=async()=>{const o=(await allOrders()).find(x=>x.id===activeOrderId),ps=await all();if(!o)return;const lines=o.items.map(it=>{const p=ps.find(x=>x.id===it.productId);return `${it.quantity} × ${p?.name||'Removed product'} ${p?.itemNumber?'(Item #: '+p.itemNumber+')':''}`;});const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print or share this order.');return;}w.document.write('<title>'+escapeHtml(o.name)+'</title><h1>'+escapeHtml(o.name)+'</h1><pre>'+escapeHtml(lines.join('\n'))+'</pre>');w.document.close();w.print();};
+ $('finishOrder').onclick=async()=>{hide('activeOrder');hide('orderModal');await renderSavedOrders();show('savedModal');};$('printOrder').onclick=async()=>{const o=(await allOrders()).find(x=>x.id===activeOrderId),ps=await all();if(!o)return;const lines=o.items.map(it=>{const p=ps.find(x=>x.id===it.productId);return `${it.quantity} × ${p?.name||'Removed product'} ${p?.itemNumber?'(Item #: '+p.itemNumber+')':''}`;});const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print or share this order.');return;}w.document.write('<title>'+escapeHtml(o.name)+'</title><h1>'+escapeHtml(o.name)+'</h1><pre>'+escapeHtml(lines.join('\n'))+'</pre>');w.document.close();w.print();};
  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
  // Invoice OCR. Tesseract is downloaded from its public CDN; image processing is local in this browser.
