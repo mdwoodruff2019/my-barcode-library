@@ -24,7 +24,7 @@ label{display:block;font-size:13px;font-weight:650;color:#475569;margin:13px 0 6
 .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}.actions button{flex:1;min-width:95px}.detailimage{width:100%;max-height:55vh;object-fit:contain;background:white;border:1px solid #e2e8f0;border-radius:12px}
 .muted{color:#64748b;font-size:13px}.sectiontitle{font-size:18px;margin:20px 0 10px}.orderrow{display:grid;grid-template-columns:minmax(0,1fr) 76px;gap:10px;align-items:center;background:white;padding:10px;border-radius:11px;margin:7px 0}.orderrow small{display:block;color:#64748b}.orderrow input{padding:8px;text-align:center}.ordercard{background:white;border:1px solid #e2e7ef;border-radius:13px;padding:13px;margin:8px 0}.ordercard .actions{margin-top:10px}
 .status{padding:10px;border-radius:10px;background:#e0f2fe;color:#075985;font-size:13px;margin:10px 0}.reviewrow{display:grid;grid-template-columns:1fr 1fr 70px;gap:7px;align-items:center;margin:8px 0;background:white;padding:9px;border-radius:10px}.reviewrow input{padding:9px;font-size:14px}.reviewrow select{padding:9px;font-size:14px}
-.menu-panel{background:white;border:1px solid #d8dee8;border-radius:14px;padding:12px;margin:10px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.menu-panel>strong,.menu-panel>p,.menu-panel>#buttonChoices{grid-column:1/-1}.menu-panel button{text-align:left}.menu-panel label{display:flex;align-items:center;gap:10px;margin:4px 0;padding:7px;font-size:15px}.menu-panel input[type=checkbox]{width:20px;height:20px}.toolbar:empty{display:none}footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
+.invoicepages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}.invoicepage{background:white;border:1px solid #e2e8f0;border-radius:12px;padding:8px}.invoicepage img{width:100%;height:160px;object-fit:contain;background:#f1f5f9}.invoicepage .actions{margin-top:5px}.invoicepage button{font-size:12px;padding:8px}.reviewrow{grid-template-columns:1fr 1fr 65px 36px}.reviewrow .muted{grid-column:1/-1}.menu-panel{background:white;border:1px solid #d8dee8;border-radius:14px;padding:12px;margin:10px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.menu-panel>strong,.menu-panel>p,.menu-panel>#buttonChoices{grid-column:1/-1}.menu-panel button{text-align:left}.menu-panel label{display:flex;align-items:center;gap:10px;margin:4px 0;padding:7px;font-size:15px}.menu-panel input[type=checkbox]{width:20px;height:20px}.toolbar:empty{display:none}footer{text-align:center;color:#94a3b8;font-size:11px;padding:22px 8px}
 @media(min-width:560px){.modal{align-items:center}.sheet{border-radius:20px}.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 </style>
 </head>
@@ -101,18 +101,30 @@ label{display:block;font-size:13px;font-weight:650;color:#475569;margin:13px 0 6
  <button class="primary hidden" id="confirmCsv">Import selected products</button>
  </div></div>
 <div class="modal hidden" id="invoiceModal"><div class="sheet">
- <div class="headrow"><h2>Scan a paper invoice</h2><button class="secondary" data-close="invoiceModal">Close</button></div>
- <p class="muted">Take a clear photo or choose an existing invoice image. OCR runs in this browser; review every result before creating an order.</p>
- <div class="upload"><input id="invoicePhoto" type="file" accept="image/*" capture="environment"></div>
- <div id="ocrStatus" class="status hidden"></div>
- <div id="invoiceReview" class="hidden"><h3 class="sectiontitle">Review recognized lines</h3><p class="muted">Confirm the item number and quantity. Choose a matching product, or leave it as “Choose each time” and decide what to do.</p><div id="reviewRows"></div><div class="actions"><button class="secondary" id="cancelInvoice">Cancel</button><button class="primary" id="invoiceToOrder">Create order from selected matches</button></div></div>
+ <div class="headrow"><h2>Scan AE Dairy Invoice</h2><button class="secondary" data-close="invoiceModal">Close</button></div>
+ <p class="muted">Photograph every page first, then process them together. Keep the entire page flat, well-lit and tightly framed. Images are processed locally in Safari.</p>
+ <div class="upload">
+  <label for="invoicePhoto">Add invoice page (camera or photo library)</label>
+  <input id="invoicePhoto" type="file" accept="image/*" capture="environment">
+  <button class="secondary" id="invoiceChoosePhotos" type="button" style="margin-top:10px">Choose photos from library</button>
+  <input id="invoicePhotos" class="hidden" type="file" accept="image/*" multiple>
+ </div>
+ <div id="invoicePages" class="invoicepages"></div>
+ <div class="actions"><button class="secondary" id="invoiceClearPages">Clear pages</button><button class="primary" id="invoiceProcess" disabled>Process all pages</button></div>
+ <div id="ocrStatus" class="status hidden" role="status"></div>
+ <div id="invoiceReview" class="hidden">
+  <h3 class="sectiontitle">Review invoice items</h3>
+  <p class="muted">Verify every item number and quantity against the photos. Quantities are taken from the Quantity column, not prices. Unmatched lines are not added automatically.</p>
+  <div id="reviewRows"></div>
+  <div class="actions"><button class="secondary" id="addInvoiceLine">Add a missing item</button><button class="secondary" id="cancelInvoice">Cancel</button><button class="primary" id="invoiceToOrder">Create order</button></div>
+ </div>
 </div></div>
 
 <script>
 (() => {
  const L=['0001101','0011001','0010011','0111101','0100011','0110001','0101111','0111011','0110111','0001011'];
  const R=['1110010','1100110','1101100','1000010','1011100','1001110','1010000','1000100','1001000','1110100'];
- function validUPC(v){if(!/^\d{12}$/.test(v))return false;let sum=0;for(let i=0;i<11;i++)sum+=Number(v[i])*(i%2===0?3:1);return (10-sum%10)%10===Number(v[11]);}
+ function validUPC(v){if(!/^\\d{12}$/.test(v))return false;let sum=0;for(let i=0;i<11;i++)sum+=Number(v[i])*(i%2===0?3:1);return (10-sum%10)%10===Number(v[11]);}
  function barcodeSVG(v){
   if(!validUPC(v))return null;
   const bits='101'+[...v.slice(0,6)].map(x=>L[+x]).join('')+'01010'+[...v.slice(6)].map(x=>R[+x]).join('')+'101';
@@ -347,16 +359,144 @@ label{display:block;font-size:13px;font-weight:650;color:#475569;margin:13px 0 6
  $('finishOrder').onclick=async()=>{hide('activeOrder');show('savedOrders');await renderSavedOrders();show('savedModal');};$('printOrder').onclick=async()=>{const o=(await allOrders()).find(x=>x.id===activeOrderId),ps=await all();if(!o)return;const lines=o.items.map(it=>{const p=ps.find(x=>x.id===it.productId);return `${it.quantity} × ${p?.name||'Removed product'} ${p?.itemNumber?'(Item #: '+p.itemNumber+')':''}`;});const w=window.open('','_blank');if(!w){alert('Allow pop-ups to print or share this order.');return;}w.document.write('<title>'+escapeHtml(o.name)+'</title><h1>'+escapeHtml(o.name)+'</h1><pre>'+escapeHtml(lines.join('\n'))+'</pre>');w.document.close();w.print();};
  function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 
- // Invoice OCR. Tesseract is downloaded from its public CDN; image processing is local in this browser.
- $('invoiceBtn').onclick=()=>{ $('invoicePhoto').value='';hide('invoiceReview');hide('ocrStatus');show('invoiceModal');};
- $('invoicePhoto').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;if(!file.type.startsWith('image/')){alert('Choose an image file.');return;}await scanInvoice(file);};
- async function loadTesseract(){if(window.Tesseract)return window.Tesseract;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=reject;document.head.append(s);});if(!window.Tesseract)throw new Error('OCR library did not load');return window.Tesseract;}
- async function scanInvoice(file){const status=$('ocrStatus');show('ocrStatus');status.textContent='Loading OCR… The first scan may take a little longer.';hide('invoiceReview');try{const T=await loadTesseract();status.textContent='Reading invoice text on this device…';const result=await T.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')status.textContent='Reading invoice… '+Math.round((m.progress||0)*100)+'%';}});const text=result.data.text||'';invoiceRows=parseInvoiceLines(text,await all());if(!invoiceRows.length){status.textContent='No likely item-number lines were found. Try a sharper, well-lit photo or enter the lines manually below.';invoiceRows=[{itemNumber:'',quantity:1,productId:'',matched:false}];}else status.textContent='Text recognition finished. Please verify each line; OCR can misread numbers.';renderInvoiceReview();show('invoiceReview');}catch(err){console.error(err);status.textContent='Could not run OCR. Check your internet connection and try again.';}}
- function parseInvoiceLines(text,products){const lines=text.split(/\r?\n/).map(s=>s.trim()).filter(Boolean),out=[];for(const line of lines){const matches=products.filter(p=>p.itemNumber&&new RegExp('(^|\\D)'+escapeRegex(p.itemNumber)+'($|\\D)','i').test(line));const tokens=line.match(/\b[A-Za-z0-9][A-Za-z0-9-]{2,}\b/g)||[];let item=matches[0]?.itemNumber||'';if(!item){const candidate=tokens.find(t=>/\d/.test(t)&&t.length>=3);if(candidate)item=candidate;}if(!item)continue;const nums=line.match(/\b\d+(?:\.\d+)?\b/g)||[];let qty=1;if(nums.length){const last=Number(nums[nums.length-1]);if(Number.isFinite(last)&&last>0&&last<10000)qty=Math.round(last);}const p=products.find(x=>x.itemNumber&&x.itemNumber.toLowerCase()===item.toLowerCase());out.push({itemNumber:item,quantity:qty,productId:p?.id||'',matched:!!p,description:line});}return out.slice(0,100);}
- function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
- async function renderInvoiceReview(){const products=await all(),box=$('reviewRows');box.replaceChildren();invoiceRows.forEach((r,i)=>{const row=document.createElement('div');row.className='reviewrow';const item=document.createElement('input');item.type='text';item.value=r.itemNumber;item.placeholder='Item number';item.oninput=()=>r.itemNumber=item.value;const sel=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Choose each time';sel.append(blank);products.forEach(p=>{const op=document.createElement('option');op.value=p.id;op.textContent=p.name+(p.itemNumber?' • '+p.itemNumber:'');sel.append(op);});sel.value=r.productId||'';sel.onchange=()=>{r.productId=sel.value;r.matched=!!sel.value;};const qty=document.createElement('input');qty.type='number';qty.min='1';qty.value=r.quantity;qty.onchange=()=>r.quantity=Math.max(1,parseInt(qty.value||'1',10));row.append(item,sel,qty);const desc=document.createElement('div');desc.className='muted';desc.style.gridColumn='1/-1';desc.textContent=r.description||'Unmatched item — choose a product or leave unmatched';row.append(desc);box.append(row);});}
- $('cancelInvoice').onclick=()=>{hide('invoiceModal');invoiceRows=[];};
- $('invoiceToOrder').onclick=async()=>{const chosen=invoiceRows.filter(r=>r.productId&&r.quantity>0);if(!chosen.length){alert('No products have been matched yet. Select a product for at least one line.');return;}const unmatched=invoiceRows.filter(r=>!r.productId);if(unmatched.length&&!confirm(unmatched.length+' invoice lines are unmatched and will be skipped. Continue?'))return;const items=[];chosen.forEach(r=>{const found=items.find(x=>x.productId===r.productId);if(found)found.quantity+=r.quantity;else items.push({productId:r.productId,quantity:r.quantity,picked:false});});const name=prompt('Name this invoice order:','Invoice order '+new Date().toLocaleDateString());if(!name)return;const o={id:makeId(),name,items,createdAt:Date.now(),updatedAt:Date.now()};await putOrder(o);hide('invoiceModal');await openOrder();await showOrder(o.id);};
+ // Multi-page AE Dairy invoice OCR. Tesseract.js downloads its model, but page photos stay in Safari.
+ let invoicePages=[],invoiceBusy=false;
+ const invoiceStatus=message=>{show('ocrStatus');$('ocrStatus').textContent=message;};
+ function resetInvoice(){invoicePages.forEach(p=>URL.revokeObjectURL(p.url));invoicePages=[];invoiceRows=[];hide('invoiceReview');hide('ocrStatus');renderInvoicePages();}
+ $('invoiceBtn').onclick=()=>{resetInvoice();show('invoiceModal');};
+ $('invoiceChoosePhotos').onclick=()=>$('invoicePhotos').click();
+ $('invoicePhoto').onchange=e=>{addInvoicePhotos(e.target.files);e.target.value='';};
+ $('invoicePhotos').onchange=e=>{addInvoicePhotos(e.target.files);e.target.value='';};
+ function addInvoicePhotos(files){
+  if(invoiceBusy)return;
+  for(const file of Array.from(files||[])){
+   if(!file.type.startsWith('image/'))continue;
+   if(invoicePages.length>=30){alert('Limit: 30 invoice pages per scan.');break;}
+   invoicePages.push({file,url:URL.createObjectURL(file),rotation:0});
+  }
+  hide('invoiceReview');renderInvoicePages();
+ }
+ function renderInvoicePages(){
+  const box=$('invoicePages');box.replaceChildren();
+  invoicePages.forEach((p,i)=>{
+   const card=document.createElement('div');card.className='invoicepage';
+   const label=document.createElement('strong');label.textContent='Page '+(i+1);
+   const img=document.createElement('img');img.src=p.url;img.alt='Invoice page '+(i+1);img.style.transform='rotate('+p.rotation+'deg)';
+   const actions=document.createElement('div');actions.className='actions';
+   const rotate=document.createElement('button');rotate.className='secondary';rotate.textContent='Rotate';rotate.disabled=invoiceBusy;rotate.onclick=()=>{p.rotation=(p.rotation+90)%360;renderInvoicePages();};
+   const retake=document.createElement('button');retake.className='secondary';retake.textContent='Retake';retake.disabled=invoiceBusy;
+   const fileInput=document.createElement('input');fileInput.type='file';fileInput.accept='image/*';fileInput.setAttribute('capture','environment');fileInput.className='hidden';
+   retake.onclick=()=>fileInput.click();fileInput.onchange=e=>{const file=e.target.files?.[0];if(file){URL.revokeObjectURL(p.url);invoicePages[i]={file,url:URL.createObjectURL(file),rotation:0};hide('invoiceReview');renderInvoicePages();}};
+   const remove=document.createElement('button');remove.className='danger';remove.textContent='Remove';remove.disabled=invoiceBusy;remove.onclick=()=>{URL.revokeObjectURL(p.url);invoicePages.splice(i,1);hide('invoiceReview');renderInvoicePages();};
+   actions.append(rotate,retake,remove);card.append(label,img,actions,fileInput);box.append(card);
+  });
+  $('invoiceProcess').disabled=invoiceBusy||!invoicePages.length;
+  $('invoiceClearPages').disabled=invoiceBusy||!invoicePages.length;
+ }
+ $('invoiceClearPages').onclick=()=>{if(invoicePages.length&&confirm('Remove all photographed pages from this scan?'))resetInvoice();};
+ async function loadTesseract(){if(window.Tesseract)return window.Tesseract;await new Promise((resolve,reject)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';s.onload=resolve;s.onerror=reject;document.head.append(s);});if(!window.Tesseract)throw Error('OCR library could not load');return window.Tesseract;}
+ async function invoiceImage(page){
+  const image=await new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=()=>reject(Error('Unable to open photo'));img.src=page.url;});
+  const turn=page.rotation%180!==0,w=turn?image.naturalHeight:image.naturalWidth,h=turn?image.naturalWidth:image.naturalHeight;
+  const scale=Math.min(1,2400/w),canvas=document.createElement('canvas');canvas.width=Math.round(w*scale);canvas.height=Math.round(h*scale);
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.translate(canvas.width/2,canvas.height/2);ctx.rotate(page.rotation*Math.PI/180);ctx.drawImage(image,-image.naturalWidth*scale/2,-image.naturalHeight*scale/2,image.naturalWidth*scale,image.naturalHeight*scale);
+  return canvas;
+ }
+ function enhanceCrop(canvas,x1,x2,y1,y2){
+  const w=Math.round(canvas.width*(x2-x1)),h=Math.round(canvas.height*(y2-y1)),out=document.createElement('canvas');
+  out.width=Math.max(1,w*2);out.height=Math.max(1,h*2);const ctx=out.getContext('2d',{willReadFrequently:true});
+  ctx.imageSmoothingEnabled=true;ctx.drawImage(canvas,Math.round(canvas.width*x1),Math.round(canvas.height*y1),w,h,0,0,out.width,out.height);
+  const data=ctx.getImageData(0,0,out.width,out.height),a=data.data;
+  for(let i=0;i<a.length;i+=4){const lum=.299*a[i]+.587*a[i+1]+.114*a[i+2];const v=lum<155?0:lum>225?255:Math.round((lum-155)*255/70);a[i]=a[i+1]=a[i+2]=v;}
+  ctx.putImageData(data,0,0);return out;
+ }
+ function ocrLines(data){
+  const lines=new Map();
+  const words=data.words?.length?data.words:(data.tsv?data.tsv.split(/\r?\n/).slice(1).map(line=>{const c=line.split('\t');return {text:c.slice(11).join('\t'),bbox:{x0:+c[6],y0:+c[7],x1:+c[6]+ +c[8],y1:+c[7]+ +c[9]},block_num:c[2],par_num:c[3],line_num:c[4]};}).filter(w=>w.text.trim()):[]);
+  for(const w of words){
+   const t=(w.text||'').trim();if(!t||!w.bbox)continue;
+   const key=[w.block_num,w.par_num,w.line_num].join(':');
+   if(!lines.has(key))lines.set(key,{words:[],y:0});
+   lines.get(key).words.push(w);
+  }
+  return [...lines.values()].map(l=>{l.words.sort((a,b)=>a.bbox.x0-b.bbox.x0);return {text:l.words.map(w=>w.text).join(' ').trim(),y:l.words.reduce((n,w)=>n+(w.bbox.y0+w.bbox.y1)/2,0)/l.words.length};}).sort((a,b)=>a.y-b.y);
+ }
+ function parseAEColumns(leftData,qtyData,products,pageNo){
+  const left=ocrLines(leftData),right=ocrLines(qtyData),results=[],seen=new Set();
+  const known=new Map(products.filter(p=>p.itemNumber).map(p=>[String(p.itemNumber).replace(/\D/g,''),p]));
+  for(const line of left){
+   const cleaned=line.text.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1');
+   const m=cleaned.match(/^\s*([0-9]{5,7})\b/)||cleaned.match(/\b([0-9]{6})\b/);
+   if(!m)continue;const item=m[1];
+   // The item column includes item numbers; header and totals do not.
+   if(seen.has(item+':'+Math.round(line.y/25)))continue;seen.add(item+':'+Math.round(line.y/25));
+   const closest=right.map(q=>({q,d:Math.abs(q.y-line.y)})).sort((a,b)=>a.d-b.d)[0];
+   const qtyMatch=closest?.q.text.match(/\b\d{1,4}\b/);
+   const valid=closest&&closest.d<45&&qtyMatch&&Number(qtyMatch[0])>0;
+   const p=known.get(item);
+   results.push({itemNumber:item,quantity:valid?Number(qtyMatch[0]):'',productId:p?.id||'',matched:!!p,description:'Page '+pageNo+' • '+line.text+(valid?'':' • Verify quantity'),uncertain:!valid});
+  }
+  return results;
+ }
+ $('invoiceProcess').onclick=async()=>{
+  if(invoiceBusy||!invoicePages.length)return;
+  invoiceBusy=true;renderInvoicePages();hide('invoiceReview');invoiceRows=[];
+  let worker;
+  try{
+   const T=await loadTesseract(),products=await all();
+   invoiceStatus('Preparing text recognition. The first scan may take a few minutes…');
+   worker=await T.createWorker('eng',1,{logger:m=>{if(m.status==='recognizing text')invoiceStatus('Reading invoice… '+Math.round((m.progress||0)*100)+'%');}});
+   await worker.setParameters({tessedit_pageseg_mode:T.PSM?.SPARSE_TEXT||'11'});
+   const allRows=[];
+   for(let i=0;i<invoicePages.length;i++){
+    invoiceStatus('Processing page '+(i+1)+' of '+invoicePages.length+' — item numbers…');
+    const canvas=await invoiceImage(invoicePages[i]);
+    // AE invoice: item numbers begin in the left column, quantities are near 60% of page width.
+    // Crop the table body, excluding the header and totals. Preserve common Y origin for matching.
+    const left=enhanceCrop(canvas,.035,.39,.245,.82);
+    const qty=enhanceCrop(canvas,.53,.67,.245,.82);
+    const l=await worker.recognize(left,{}, {text:true,tsv:true,words:true});
+    invoiceStatus('Processing page '+(i+1)+' of '+invoicePages.length+' — quantities…');
+    await worker.setParameters({tessedit_char_whitelist:'0123456789',tessedit_pageseg_mode:T.PSM?.SPARSE_TEXT||'11'});
+    const q=await worker.recognize(qty,{}, {text:true,tsv:true,words:true});
+    await worker.setParameters({tessedit_char_whitelist:'',tessedit_pageseg_mode:T.PSM?.SPARSE_TEXT||'11'});
+    allRows.push(...parseAEColumns(l.data,q.data,products,i+1));
+   }
+   invoiceRows=allRows;
+   if(!invoiceRows.length){invoiceRows=[{itemNumber:'',quantity:'',productId:'',description:'No items recognized — enter manually'}];invoiceStatus('No items were recognized. Retake sharper, tightly framed photos or enter items manually.');}
+   else invoiceStatus('Found '+invoiceRows.length+' lines across '+invoicePages.length+' pages. Check every quantity and product before saving.');
+   await renderInvoiceReview();show('invoiceReview');
+  }catch(err){console.error(err);invoiceStatus('Scan failed: '+err.message+'. You can retake a page and try again.');}
+  finally{if(worker)try{await worker.terminate();}catch(_){}invoiceBusy=false;renderInvoicePages();}
+ };
+ function invoiceReviewRow(r,products){
+  const row=document.createElement('div');row.className='reviewrow';
+  const item=document.createElement('input');item.type='text';item.value=r.itemNumber||'';item.placeholder='Item number';
+  const sel=document.createElement('select');const blank=document.createElement('option');blank.value='';blank.textContent='Choose product';sel.append(blank);
+  products.forEach(p=>{const o=document.createElement('option');o.value=p.id;o.textContent=p.name+(p.itemNumber?' • '+p.itemNumber:'');sel.append(o);});
+  sel.value=r.productId||'';
+  item.oninput=()=>{r.itemNumber=item.value.trim();const found=products.find(p=>p.itemNumber&&p.itemNumber.toLowerCase()===r.itemNumber.toLowerCase());r.productId=found?.id||'';sel.value=r.productId;};
+  sel.onchange=()=>r.productId=sel.value;
+  const qty=document.createElement('input');qty.type='number';qty.min='1';qty.placeholder='Qty';qty.value=r.quantity??'';qty.oninput=()=>r.quantity=qty.value===''?'':Number(qty.value);
+  const del=document.createElement('button');del.className='danger';del.textContent='×';del.setAttribute('aria-label','Remove invoice line');del.onclick=()=>{invoiceRows.splice(invoiceRows.indexOf(r),1);row.remove();};
+  const desc=document.createElement('div');desc.className='muted';desc.textContent=r.description||'Manually added item';
+  row.append(item,sel,qty,del,desc);return row;
+ }
+ async function renderInvoiceReview(){const products=await all(),box=$('reviewRows');box.replaceChildren();invoiceRows.forEach(r=>box.append(invoiceReviewRow(r,products)));}
+ $('addInvoiceLine').onclick=async()=>{const r={itemNumber:'',quantity:'',productId:'',description:'Manually added item'};invoiceRows.push(r);$('reviewRows').append(invoiceReviewRow(r,await all()));};
+ $('cancelInvoice').onclick=()=>{hide('invoiceModal');resetInvoice();};
+ $('invoiceToOrder').onclick=async()=>{
+  const invalid=invoiceRows.filter(r=>r.productId&&(!Number.isInteger(Number(r.quantity))||Number(r.quantity)<=0));
+  if(invalid.length){alert('Correct the quantities for all selected products before creating the order.');return;}
+  const chosen=invoiceRows.filter(r=>r.productId&&Number(r.quantity)>0);
+  if(!chosen.length){alert('Choose at least one product with a valid quantity.');return;}
+  const unmatched=invoiceRows.filter(r=>!r.productId);
+  if(unmatched.length&&!confirm(unmatched.length+' unmatched invoice lines will be excluded. Continue?'))return;
+  const map=new Map();chosen.forEach(r=>map.set(r.productId,(map.get(r.productId)||0)+Number(r.quantity)));
+  const name=prompt('Name this invoice order:','AE invoice '+new Date().toLocaleDateString());if(!name)return;
+  const o={id:makeId(),name,items:[...map].map(([productId,quantity])=>({productId,quantity})),createdAt:Date.now(),updatedAt:Date.now()};
+  await putOrder(o);hide('invoiceModal');resetInvoice();await renderSavedOrders();await showOrder(o.id);
+ };
 
  openDB().then(async d=>{db=d;await deleteLegacyPhotos();await initializeOrder();window.cachedProducts=await all();await render();}).catch(()=>{$('list').textContent='This browser could not open local storage. Try opening this app in Safari.';});
 })();
